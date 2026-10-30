@@ -40,6 +40,7 @@ spo-shpora/
         ├── files.py         # сохранение файлов и аватарок
         ├── services.py      # поиск постов, статистика, предупреждения/баны
         ├── seed.py          # начальные данные
+        ├── migrations.py    # мини-миграции (добавление колонок при старте, без Alembic)
         └── routers/
             ├── auth.py          # регистрация и вход
             ├── posts.py         # лента, поиск, посты, файлы, лайки
@@ -75,8 +76,9 @@ spo-shpora/
 | Параметр | Значение |
 |---|---|
 | `sort` | `new` (по умолчанию, от новых к старым) или `rating` (по лайкам) |
-| `q` | маленькая строка поиска (ищет по описанию, предмету, преподавателю, типу работы, нику) |
-| `institute_id`, `subject_id`, `semester_id`, `work_type_id`, `teacher_id` | фильтры |
+| `q` | маленькая строка поиска (ищет по описанию, предмету, преподавателю, типу работы, нику и тегам) |
+| `institute_id`, `subject_id`, `semester_id`, `work_type_id`, `teacher_id`, `year` | фильтры (комбинируются по «И») |
+| `tag` | точный тег (без «#») |
 | `limit` | сколько постов загружать (по умолчанию 6) |
 | `offset` | сколько уже загружено |
 
@@ -89,7 +91,7 @@ spo-shpora/
 | Метод | Путь | Кто | Описание |
 |---|---|---|---|
 | GET | `/posts/{id}` | все | один пост |
-| POST | `/posts` | студент+ | `{comment (до 200), institute_id, subject_id, semester_id, work_type_id, teacher_id?}` — обязательны все поля, кроме `teacher_id` и `comment` |
+| POST | `/posts` | студент+ | `{comment (до 200), institute_id, subject_id, semester_id, work_type_id, teacher_id?, year?, tags?}` — обязательны институт, предмет, семестр и тип работы; `year` по умолчанию текущий (2000 … следующий год); `tags` — до 10 тегов (без «#», в нижнем регистре, до 30 символов) |
 | PATCH | `/posts/{id}` | автор | изменить любые поля |
 | DELETE | `/posts/{id}` | автор | удалить свой пост |
 | POST | `/posts/{id}/files` | автор | multipart, поле `files` (можно несколько) |
@@ -137,7 +139,13 @@ spo-shpora/
 ## База данных
 
 Таблицы соответствуют ER-диаграмме: `roles, users, bans, warnings, institutes, subjects,
-semesters, work_types, teachers, posts, post_files, likes`.
+semesters, work_types, teachers, posts, post_files, likes, tags, post_tags`.
+
+`GET /tags?q=&limit=` — теги по убыванию популярности (подсказки при создании поста).
+`GET /dictionaries` дополнительно отдаёт `years` — список годов для фильтра.
+
+Проект без Alembic: новые таблицы создаёт `create_all`, а новые колонки в существующих таблицах добавляет
+`app/migrations.py` (идемпотентные SQL при каждом старте).
 
 Удалённые посты нигде не хранятся. Если модератор отметил «нарушает правила», его
 комментарий сохраняется только в предупреждении автору (`warnings`).

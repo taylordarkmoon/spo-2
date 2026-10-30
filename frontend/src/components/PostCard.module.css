@@ -1,0 +1,138 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.nick {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #d4d4db;
+}
+
+.date {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.title {
+  font-size: 20px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.comment {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: 14px;
+}
+
+.type {
+  color: var(--lime);
+}
+
+.tag {
+  color: #9bd36a;
+  opacity: 0.85;
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+}
+
+.file {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fileName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileMeta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.previewBtn {
+  /* прижимаем картинку и подпись к низу, чтобы они были на одном уровне в соседних карточках */
+  margin-top: auto;
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  transition: opacity 0.15s;
+}
+
+.previewBtn:hover {
+  opacity: 0.88;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.openBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.openBtn:hover {
+  background: #2e2e36;
+}
+
+@media (min-width: 900px) {
+  /* в сетке резервируем две строки под описание, чтобы блоки ниже не «прыгали» */
+  .comment {
+    min-height: 2lh;
+  }
+}
+
+.meta {
+  color: var(--muted);
+  font-size: 13px;
+  align-self: center;
+}

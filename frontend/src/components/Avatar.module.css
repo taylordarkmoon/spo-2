@@ -1,0 +1,31 @@
+.avatar {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.violet {
+  background: #2c2640;
+  color: var(--accent-text);
+}
+.lime {
+  background: #2b3320;
+  color: var(--lime);
+}
+.sky {
+  background: #1f3040;
+  color: #8cc8ff;
+}
+.rose {
+  background: #3d2530;
+  color: #ff9db5;
+}

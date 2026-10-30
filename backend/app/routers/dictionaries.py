@@ -1,6 +1,7 @@
-"""Справочники для фильтров: институты, предметы, семестры, типы работ, преподаватели, теги.
+"""Справочники для фильтров: институты, предметы, семестры, типы работ, преподаватели (+ список годов).
 Чтение — всем (включая гостей), изменение — модераторам и администраторам."""
 
+from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -23,6 +24,7 @@ class AllDictionaries(BaseModel):
     semesters: list[SemesterItem]
     work_types: list[DictItem]
     teachers: list[TeacherItem]
+    years: list[int]
 
 
 @router.get("", response_model=AllDictionaries)
@@ -37,6 +39,7 @@ def all_dictionaries(db: Session = Depends(get_db)):
         semesters=load(SemesterItem, Semester, Semester.number),
         work_types=load(DictItem, WorkType, WorkType.name),
         teachers=load(TeacherItem, Teacher, Teacher.full_name),
+        years=list(range(datetime.now(timezone.utc).year, datetime.now(timezone.utc).year - 8, -1)),
     )
 
 

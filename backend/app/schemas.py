@@ -1,10 +1,40 @@
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 NICKNAME_RE = re.compile(r"^[A-Za-zА-Яа-яЁё0-9_.\-]{3,32}$")
+
+
+TAG_RE = re.compile(r"^[A-Za-zА-Яа-яЁё0-9_.\-]{1,30}$")
+MAX_TAGS = 10
+MIN_YEAR = 2000
+
+
+def normalize_tags(values: list[str]) -> list[str]:
+    """Теги: без «#», в нижнем регистре, без повторов."""
+    result: list[str] = []
+    for raw in values:
+        tag = raw.strip().lstrip("#").strip().lower()
+        if not tag:
+            continue
+        if not TAG_RE.match(tag):
+            raise ValueError("Тег: до 30 символов, буквы, цифры, «_», «.», «-»")
+        if tag not in result:
+            result.append(tag)
+    if len(result) > MAX_TAGS:
+        raise ValueError(f"Не больше {MAX_TAGS} тегов")
+    return result
+
+
+def check_year(value: int | None) -> int | None:
+    if value is None:
+        return value
+    max_year = datetime.now(timezone.utc).year + 1
+    if not MIN_YEAR <= value <= max_year:
+        raise ValueError(f"Год: от {MIN_YEAR} до {max_year}")
+    return value
 
 
 def _check_nickname(v: str) -> str:
@@ -142,11 +172,19 @@ class PostOut(BaseModel):
     semester: SemesterItem
     work_type: DictItem
     teacher: TeacherItem | None
+    year: int
+    tags: list[str] = []
     files: list[PostFileOut]
     likes_count: int
     is_liked: bool = False
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _tag_names(cls, value):
+        # из ORM приходят объекты Tag — отдаём только имена
+        return [getattr(t, "name", t) for t in value or []]
 
 
 class PostPage(BaseModel):
@@ -164,6 +202,18 @@ class PostCreate(BaseModel):
     semester_id: int
     work_type_id: int
     teacher_id: int | None = None
+    year: int | None = None  # по умолчанию — текущий год
+    tags: list[str] = []
+
+    @field_validator("tags")
+    @classmethod
+    def _tags(cls, v: list[str]) -> list[str]:
+        return normalize_tags(v)
+
+    @field_validator("year")
+    @classmethod
+    def _year(cls, v: int | None) -> int | None:
+        return check_year(v)
 
 
 class PostUpdate(BaseModel):
@@ -173,6 +223,18 @@ class PostUpdate(BaseModel):
     semester_id: int | None = None
     work_type_id: int | None = None
     teacher_id: int | None = None  # передайте null явно, чтобы убрать преподавателя
+    year: int | None = None
+    tags: list[str] | None = None  # полностью заменяет список тегов
+
+    @field_validator("tags")
+    @classmethod
+    def _tags(cls, v: list[str] | None) -> list[str] | None:
+        return None if v is None else normalize_tags(v)
+
+    @field_validator("year")
+    @classmethod
+    def _year(cls, v: int | None) -> int | None:
+        return check_year(v)
 
 
 class LikeOut(BaseModel):

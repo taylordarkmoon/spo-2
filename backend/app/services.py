@@ -15,6 +15,7 @@ from app.models import (
     Post,
     Semester,
     Subject,
+    Tag,
     Teacher,
     User,
     UserWarning,
@@ -40,8 +41,14 @@ def build_post_filters(
     teacher_id: int | None = None,
     q: str | None = None,
     author_id: int | None = None,
+    year: int | None = None,
+    tag: str | None = None,
 ) -> list:
     conds = []
+    if year is not None:
+        conds.append(Post.year == year)
+    if tag and tag.strip():
+        conds.append(Post.tags.any(Tag.name == tag.strip().lstrip("#").lower()))
     if institute_id is not None:
         conds.append(Post.institute_id == institute_id)
     if subject_id is not None:
@@ -63,6 +70,7 @@ def build_post_filters(
                 Post.subject.has(Subject.name.ilike(pattern, escape="\\")),
                 Post.teacher.has(Teacher.full_name.ilike(pattern, escape="\\")),
                 Post.work_type.has(WorkType.name.ilike(pattern, escape="\\")),
+                Post.tags.any(Tag.name.ilike(pattern, escape="\\")),
             )
         )
     return conds
@@ -136,6 +144,20 @@ def validate_post_refs(
     for model, value, title in checks:
         if value is not None and db.get(model, value) is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"{title} с id={value} не найден")
+
+
+def set_post_tags(db: Session, post: Post, names: list[str]) -> None:
+    """Заменяет теги поста, создавая недостающие записи в справочнике тегов."""
+    existing = {t.name: t for t in db.scalars(select(Tag).where(Tag.name.in_(names)))} if names else {}
+    tags = []
+    for name in names:
+        tag = existing.get(name)
+        if tag is None:
+            tag = Tag(name=name)
+            db.add(tag)
+            existing[name] = tag
+        tags.append(tag)
+    post.tags = tags
 
 
 def change_likes_count(db: Session, post_id: int, delta: int) -> int:

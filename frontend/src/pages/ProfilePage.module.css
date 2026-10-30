@@ -1,0 +1,231 @@
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 0 8px;
+}
+
+.heading {
+  margin: 8px 0 20px;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border-radius: var(--radius-l);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nick {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.role {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--lime);
+}
+
+.role::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lime);
+}
+
+.likes {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 16px;
+  padding: 18px;
+  border-radius: var(--radius-l);
+  background: var(--hero);
+}
+
+.total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+
+.total strong {
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 800;
+  color: var(--accent-text);
+}
+
+.total span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--accent-text);
+}
+
+.likes h3 {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.likes p {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #b0a8c4;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sectionHead h2 {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.badge {
+  min-width: 28px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.state {
+  padding: 48px 0;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ---------- Компьютер ---------- */
+
+@media (min-width: 900px) {
+  .top {
+    display: none;
+  }
+
+  /* Обе колонки начинаются с «строки заголовка» одинаковой высоты:
+     слева «Профиль», справа «Понравившееся». Ниже контент стартует с одной линии. */
+  .layout {
+    display: grid;
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 32px;
+    align-items: start;
+    padding-top: 32px;
+  }
+
+  .side {
+    position: sticky;
+    top: 96px;
+  }
+
+  .heading,
+  .sectionHead {
+    display: flex;
+    align-items: center;
+    min-height: 56px;
+    margin: 0 0 24px;
+  }
+
+  .heading {
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  .section:first-child {
+    margin-top: 0;
+  }
+
+  .list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+}
+
+/* ---------- Кнопка «Посмотреть все» ---------- */
+
+.more {
+  display: flex;
+  margin: 16px auto 0;
+  min-width: 220px;
+}
+
+/* ---------- Предупреждения ---------- */
+
+.warnings {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-l);
+  background: rgba(255, 107, 122, 0.08);
+  border: 1px solid rgba(255, 107, 122, 0.3);
+}
+
+.warnings h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  color: var(--danger);
+}
+
+.warnings ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.warnings li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+}
+
+.warnings time {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.warnings p {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--muted);
+}

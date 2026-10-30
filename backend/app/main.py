@@ -12,7 +12,8 @@ from app import models  # noqa: F401  — регистрирует модели 
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.files import MEDIA_ROOT, ensure_media_dirs
-from app.routers import admin, auth, dictionaries, moderation, posts, users
+from app.migrations import run_migrations
+from app.routers import admin, auth, dictionaries, moderation, posts, tags, users
 from app.seed import run_seed
 
 logging.basicConfig(level=logging.INFO)
@@ -35,6 +36,7 @@ def wait_for_db(attempts: int = 30, delay: float = 1.0) -> None:
 async def lifespan(_: FastAPI):
     wait_for_db()
     Base.metadata.create_all(bind=engine)
+    run_migrations(engine)
     with SessionLocal() as db:
         run_seed(db)
     yield
@@ -61,7 +63,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for r in (auth.router, posts.router, users.router, dictionaries.router, moderation.router, admin.router):
+for r in (
+    auth.router,
+    posts.router,
+    users.router,
+    dictionaries.router,
+    tags.router,
+    moderation.router,
+    admin.router,
+):
     app.include_router(r, prefix="/api")
 
 app.mount(settings.MEDIA_URL, StaticFiles(directory=MEDIA_ROOT), name="media")

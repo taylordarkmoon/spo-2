@@ -1,17 +1,20 @@
 """ORM-модели. Повторяют ER-диаграмму проекта."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
+    Column,
     DateTime,
     ForeignKey,
     Index,
     Integer,
     SmallInteger,
     String,
+    Table,
     false,
     func,
+    text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -106,7 +109,28 @@ class Teacher(Base):
     full_name: Mapped[str] = mapped_column(String(255), unique=True)
 
 
+# ---------- Теги ----------
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(30), unique=True)
+
+
+post_tags = Table(
+    "post_tags",
+    Base.metadata,
+    Column("post_id", ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True),
+    Column("tag_id", ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True, index=True),
+)
+
+
 # ---------- Посты ----------
+
+def current_year() -> int:
+    return datetime.now(timezone.utc).year
+
 
 class Post(Base):
     __tablename__ = "posts"
@@ -122,6 +146,12 @@ class Post(Base):
     teacher_id: Mapped[int | None] = mapped_column(
         ForeignKey("teachers.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    year: Mapped[int] = mapped_column(
+        SmallInteger,
+        default=current_year,
+        server_default=text("EXTRACT(YEAR FROM now())::smallint"),
+        index=True,
+    )
     likes_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
@@ -134,6 +164,7 @@ class Post(Base):
     semester: Mapped[Semester] = relationship(lazy="joined")
     work_type: Mapped[WorkType] = relationship(lazy="joined")
     teacher: Mapped[Teacher | None] = relationship(lazy="joined")
+    tags: Mapped[list[Tag]] = relationship(secondary=post_tags, lazy="selectin", order_by=Tag.name)
     files: Mapped[list["PostFile"]] = relationship(
         back_populates="post", lazy="selectin", cascade="all, delete-orphan", order_by="PostFile.id"
     )

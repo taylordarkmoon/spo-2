@@ -1,0 +1,32 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: var(--accent-strong);
+  color: #fff;
+}
+
+.name {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.lg .mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+}
+
+.lg .name {
+  font-size: 26px;
+}

@@ -17,6 +17,7 @@ from app.services import (
     order_posts,
     paginate_posts,
     serialize_posts,
+    set_post_tags,
     validate_post_refs,
 )
 
@@ -38,6 +39,8 @@ def search_posts(
     work_type_id: int | None = None,
     teacher_id: int | None = None,
     author_id: int | None = None,
+    year: int | None = Query(None, description="Год материалов"),
+    tag: str | None = Query(None, max_length=30, description="Точный тег"),
     limit: int = Query(6, ge=1, le=50, description="Сколько постов подгрузить"),
     offset: int = Query(0, ge=0, description="Сколько уже загружено (для кнопки «ещё»)"),
     db: Session = Depends(get_db),
@@ -55,6 +58,8 @@ def search_posts(
         teacher_id=teacher_id,
         q=q,
         author_id=author_id,
+        year=year,
+        tag=tag,
     )
     stmt = order_posts(select(Post).where(*conds), sort)
     count_stmt = select(func.count(Post.id)).where(*conds)
@@ -95,7 +100,9 @@ def create_post(
         semester_id=data.semester_id,
         work_type_id=data.work_type_id,
         teacher_id=data.teacher_id,
+        **({"year": data.year} if data.year is not None else {}),
     )
+    set_post_tags(db, post, data.tags)
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -114,8 +121,9 @@ def update_post(
     _check_owner(post, user)
 
     fields = data.model_dump(exclude_unset=True)
+    tags = fields.pop("tags", None)
 
-    for required in ("institute_id", "subject_id", "semester_id", "work_type_id"):
+    for required in ("institute_id", "subject_id", "semester_id", "work_type_id", "year"):
         if required in fields and fields[required] is None:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, f"Поле {required} не может быть пустым")
     if "comment" in fields and fields["comment"] is None:
@@ -124,6 +132,8 @@ def update_post(
     validate_post_refs(db, **{k: v for k, v in fields.items() if k.endswith("_id")})
     for key, value in fields.items():
         setattr(post, key, value)
+    if tags is not None:
+        set_post_tags(db, post, tags)
     post.updated_at = func.now()
 
     db.commit()
