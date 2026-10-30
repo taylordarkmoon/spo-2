@@ -51,7 +51,7 @@ def client(db):
 def _auth(client, email, password):
     r = client.post("/api/auth/login", json={"email": email, "password": password})
     assert r.status_code == 200, r.text
-    return {"Authorization": f"Bearer {r.json()["access_token"]}"}
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
 def make_user(client, email, nickname):
@@ -79,11 +79,13 @@ def student2(client):
 
 
 @pytest.fixture
-def moderator(client):
+def moderator(client, db):
     headers = make_user(client, "moderator@test.com", "moderator")
-    from app.models import User
+    from app.models import User, Role
 
-    db.query(User).filter_by(email="moderator@test.com").one().role = "moderator"
+    role = db.query(Role).filter_by(name="moderator").one()
+    user = db.query(User).filter_by(email="moderator@test.com").one()
+    user.role = role
     db.commit()
     return headers
 

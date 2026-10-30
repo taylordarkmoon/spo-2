@@ -1,0 +1,4 @@
+{
+  "flake8.args": ["--config=backend/.flake8"],
+  "flake8.cwd": "${workspaceFolder}/backend"
+}
