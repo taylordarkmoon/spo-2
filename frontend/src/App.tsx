@@ -3,6 +3,7 @@ import { AuthProvider } from './auth/AuthContext'
 import { AppShell, PlainShell } from './components/AppShell'
 import { RoleRoute } from './components/RoleRoute'
 import { AdminPage } from './pages/AdminPage'
+import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { EditProfilePage } from './pages/EditProfilePage'
 import { FeedPage } from './pages/FeedPage'
 import { LoginPage } from './pages/LoginPage'
@@ -32,6 +33,7 @@ export default function App() {
             <Route path="posts/new" element={<PostFormPage />} />
             <Route path="posts/:id/edit" element={<PostFormPage />} />
             <Route path="profile/edit" element={<EditProfilePage />} />
+            <Route path="profile/password" element={<ChangePasswordPage />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

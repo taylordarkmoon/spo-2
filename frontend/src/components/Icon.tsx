@@ -94,6 +94,12 @@ const paths: Record<string, ReactNode> = {
     </>
   ),
   flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 018 0v3" />
+    </>
+  ),
   logout: (
     <>
       <path d="M10 4H5a1 1 0 00-1 1v14a1 1 0 001 1h5" />

@@ -100,6 +100,9 @@ export function EditProfilePage() {
         <button type="submit" className={`${ui.btn} ${ui.block}`} disabled={busy}>
           {busy ? 'Сохраняем…' : 'Сохранить'}
         </button>
+        <Link to="/profile/password" className={`${ui.btn} ${ui.secondary} ${ui.block}`}>
+          <Icon name="lock" size={18} /> Сменить пароль
+        </Link>
         <button
           type="button"
           className={`${ui.btn} ${ui.secondary} ${ui.block}`}

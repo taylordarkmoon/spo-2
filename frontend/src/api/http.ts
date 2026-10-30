@@ -125,6 +125,11 @@ export const api = {
     request<TokenOut>('/auth/login', { method: 'POST', json: { email, password } }, false),
   getMe: () => request<UserMe>('/users/me'),
   getMyWarnings: () => request<WarningItem[]>('/users/me/warnings'),
+  changePassword: (oldPassword: string, newPassword: string, confirm: string) =>
+    request<void>('/users/me/password', {
+      method: 'POST',
+      json: { old_password: oldPassword, new_password: newPassword, new_password_confirm: confirm },
+    }),
 
   async updateMe({ nickname, avatar }: { nickname?: string; avatar?: File | null }) {
     let user: UserMe | null = null
