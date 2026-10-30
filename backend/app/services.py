@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import (
+    ROLE_ADMIN,
     Ban,
     Institute,
     Like,
@@ -249,6 +250,7 @@ def issue_warning(db: Session, target: User, moderator: User, reason: str) -> tu
         settings.WARNINGS_TO_AUTO_BAN > 0
         and count >= settings.WARNINGS_TO_AUTO_BAN
         and not target.is_banned
+        and target.role.name != ROLE_ADMIN  # администратора автобан не трогает
     ):
         ban_user(db, target, banned_by=None, is_auto=True)
         auto_banned = True
