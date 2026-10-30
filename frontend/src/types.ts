@@ -43,7 +43,10 @@ export interface UserMe extends UserShort {
 
 export interface TokenOut {
   access_token: string
+  refresh_token: string
   token_type: string
+  /** через сколько секунд истечёт access_token */
+  expires_in: number
   user: UserMe
 }
 

@@ -1,10 +1,10 @@
 """Общая бизнес-логика: выборка постов, статистика пользователя, предупреждения/баны."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import HTTPException, status
-from sqlalchemy import Select, func, or_, select, update
+from sqlalchemy import Select, delete, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -14,6 +14,7 @@ from app.models import (
     Institute,
     Like,
     Post,
+    RefreshToken,
     Semester,
     Subject,
     Tag,
@@ -22,7 +23,8 @@ from app.models import (
     UserWarning,
     WorkType,
 )
-from app.schemas import PostOut, PostPage, UserMe, UserPublic
+from app.schemas import PostOut, PostPage, TokenOut, UserMe, UserPublic
+from app.security import create_access_token, generate_refresh_token, hash_refresh_token
 
 SortMode = Literal["new", "rating"]
 
@@ -220,6 +222,7 @@ def get_user_or_404(db: Session, user_id: int) -> User:
 
 def ban_user(db: Session, user: User, banned_by: User | None, is_auto: bool) -> Ban:
     user.is_banned = True
+    revoke_refresh_tokens(db, user.id)  # забаненный не сможет обновить токен
     ban = Ban(user_id=user.id, banned_by=banned_by.id if banned_by else None, is_auto=is_auto)
     db.add(ban)
     return ban
@@ -255,3 +258,37 @@ def issue_warning(db: Session, target: User, moderator: User, reason: str) -> tu
         ban_user(db, target, banned_by=None, is_auto=True)
         auto_banned = True
     return warning, count, auto_banned
+
+
+# ---------- Токены ----------
+
+def issue_refresh_token(db: Session, user: User) -> str:
+    """Создаёт новую сессию (refresh-токен). Заодно чистит истёкшие сессии пользователя."""
+    now = datetime.now(timezone.utc)
+    db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id, RefreshToken.expires_at <= now))
+    token = generate_refresh_token()
+    db.add(
+        RefreshToken(
+            user_id=user.id,
+            token_hash=hash_refresh_token(token),
+            expires_at=now + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
+        )
+    )
+    return token
+
+
+def revoke_refresh_tokens(db: Session, user_id: int) -> None:
+    """Завершает все сессии пользователя."""
+    db.execute(delete(RefreshToken).where(RefreshToken.user_id == user_id))
+
+
+def token_response(db: Session, user: User) -> TokenOut:
+    """Выдаёт пару access + refresh и сохраняет сессию в базе."""
+    refresh_token = issue_refresh_token(db, user)
+    db.commit()
+    return TokenOut(
+        access_token=create_access_token(user.id, user.role.name),
+        refresh_token=refresh_token,
+        expires_in=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        user=to_user_me(db, user),
+    )

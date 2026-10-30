@@ -126,8 +126,14 @@ class UserMe(UserPublic):
 
 class TokenOut(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+    expires_in: int  # через сколько секунд истечёт access_token
     user: UserMe
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=200)
 
 
 class UserUpdate(BaseModel):
