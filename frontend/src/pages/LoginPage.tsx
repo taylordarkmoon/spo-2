@@ -59,6 +59,7 @@ export function LoginPage() {
           onChange={(e) => setEmail(e.target.value)}
           autoComplete="email"
           placeholder="name@mail.ru"
+          testId="login-email"
         />
         <Field
           label="Пароль"
@@ -66,6 +67,7 @@ export function LoginPage() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete="current-password"
+          testId="login-password"
         />
 
         {error && <p className={ui.error}>{error}</p>}

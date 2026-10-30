@@ -223,6 +223,7 @@ export function PostFormPage() {
             </label>
             <textarea
               id="comment"
+              data-testid="post-comment"
               className={styles.textarea}
               value={comment}
               onChange={(e) => setComment(e.target.value)}

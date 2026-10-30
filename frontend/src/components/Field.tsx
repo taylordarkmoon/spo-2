@@ -6,9 +6,11 @@ import styles from './Field.module.css'
 interface Props extends InputHTMLAttributes<HTMLInputElement> {
   label: string
   error?: string
+  /** стабильный идентификатор для E2E-тестов (Playwright getByTestId) */
+  testId?: string
 }
 
-export function Field({ label, error, type, ...rest }: Props) {
+export function Field({ label, error, type, testId, ...rest }: Props) {
   const id = useId()
   const [shown, setShown] = useState(false)
   const isPassword = type === 'password'
@@ -21,6 +23,7 @@ export function Field({ label, error, type, ...rest }: Props) {
       <div className={styles.control}>
         <input
           id={id}
+          data-testid={testId}
           className={`${styles.input} ${error ? styles.invalid : ''}`}
           type={isPassword && shown ? 'text' : type}
           aria-invalid={error ? true : undefined}

@@ -97,6 +97,7 @@ export function RegisterPage() {
           error={show('nickname')}
           autoComplete="username"
           placeholder="Как вас будут видеть другие"
+          testId="register-nickname"
         />
         <Field
           label="Электронная почта"
@@ -106,6 +107,7 @@ export function RegisterPage() {
           error={show('email')}
           autoComplete="email"
           placeholder="name@mail.ru"
+          testId="register-email"
         />
         <Field
           label="Пароль"
@@ -114,6 +116,7 @@ export function RegisterPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={show('password')}
           autoComplete="new-password"
+          testId="register-password"
         />
         <Field
           label="Повторите пароль"
@@ -122,11 +125,17 @@ export function RegisterPage() {
           onChange={(e) => setConfirm(e.target.value)}
           error={show('confirm')}
           autoComplete="new-password"
+          testId="register-confirm"
         />
 
         <div>
           <label className={styles.agree}>
-            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
+            <input
+              type="checkbox"
+              data-testid="register-agree"
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
+            />
             <span className={styles.box}>
               <Icon name="check" size={14} />
             </span>
