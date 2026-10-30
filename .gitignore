@@ -6,3 +6,4 @@ venv/
 backend/media/
 .DS_Store
 pnpm-lock.yaml
+test-results
