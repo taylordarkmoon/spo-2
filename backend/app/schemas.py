@@ -126,8 +126,14 @@ class UserMe(UserPublic):
 
 class TokenOut(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+    expires_in: int  # через сколько секунд истечёт access_token
     user: UserMe
+
+
+class RefreshIn(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=200)
 
 
 class UserUpdate(BaseModel):
@@ -246,8 +252,21 @@ class LikeOut(BaseModel):
 # ---------- Модерация ----------
 
 class ModerationDeleteIn(BaseModel):
+    """Без галочки — пост просто удаляется.
+    С галочкой «нарушает правила» обязательно пишется текст предупреждения автору."""
+
     is_violation: bool = False
-    comment: str | None = Field(default=None, max_length=500)
+    comment: str | None = Field(default=None, max_length=450, description="Текст предупреждения")
+
+    @model_validator(mode="after")
+    def _comment_required_for_violation(self):
+        if self.is_violation:
+            if not self.comment or not self.comment.strip():
+                raise ValueError("Отмечено «нарушает правила» — напишите текст предупреждения")
+            self.comment = self.comment.strip()
+        else:
+            self.comment = None
+        return self
 
 
 class ModerationDeleteOut(BaseModel):

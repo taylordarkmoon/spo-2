@@ -8,7 +8,8 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str = "dev-secret-change-me"
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # короткоживущий access-токен
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # refresh-токен для получения новых access-токенов
 
     MEDIA_DIR: str = "media"
     MEDIA_URL: str = "/media"

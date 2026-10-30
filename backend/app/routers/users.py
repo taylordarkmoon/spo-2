@@ -9,6 +9,7 @@ from app.files import IMAGE_EXT, delete_media, save_upload
 from app.models import Like, Post, User, UserWarning
 from app.schemas import (
     PasswordChange,
+    TokenOut,
     PostPage,
     UserMe,
     UserPublic,
@@ -16,7 +17,7 @@ from app.schemas import (
     WarningOut,
 )
 from app.security import hash_password, verify_password
-from app.services import SortMode, get_user_or_404, order_posts, paginate_posts, to_user_me, to_user_public
+from app.services import SortMode, get_user_or_404, revoke_refresh_tokens, token_response, order_posts, paginate_posts, to_user_me, to_user_public
 
 router = APIRouter(prefix="/users", tags=["Профиль"])
 
@@ -73,12 +74,14 @@ def delete_avatar(db: Session = Depends(get_db), user: User = Depends(get_curren
     return to_user_me(db, user)
 
 
-@router.post("/me/password", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/me/password", response_model=TokenOut)
 def change_password(data: PasswordChange, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Сменить пароль. Все остальные сессии завершаются, текущему устройству выдаётся новая пара токенов."""
     if not verify_password(data.old_password, user.password_hash):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Неверный текущий пароль")
     user.password_hash = hash_password(data.new_password)
-    db.commit()
+    revoke_refresh_tokens(db, user.id)
+    return token_response(db, user)
 
 
 @router.get("/me/posts", response_model=PostPage)

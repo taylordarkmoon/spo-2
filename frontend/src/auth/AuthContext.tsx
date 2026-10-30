@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react'
 import { api } from '../api'
 import type { RegisterData } from '../api'
-import { AUTH_EXPIRED_EVENT, clearToken, getToken, setToken } from '../lib/token'
+import { AUTH_EXPIRED_EVENT, clearToken, getRefreshToken, getToken, setTokens } from '../lib/token'
 import type { TokenOut, UserMe } from '../types'
 
 interface AuthValue {
@@ -21,11 +21,11 @@ const AuthContext = createContext<AuthValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserMe | null>(null)
-  const [loading, setLoading] = useState(() => getToken() !== null)
+  const [loading, setLoading] = useState(() => getToken() !== null || getRefreshToken() !== null)
   const [loggedOut, setLoggedOut] = useState(false)
 
   useEffect(() => {
-    if (!getToken()) return
+    if (!getToken() && !getRefreshToken()) return
     api
       .getMe()
       .then(setUser)
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const accept = useCallback((res: TokenOut) => {
-    setToken(res.access_token)
+    setTokens(res.access_token, res.refresh_token)
     setLoggedOut(false)
     setUser(res.user)
   }, [])
@@ -52,6 +52,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login: async (email, password) => accept(await api.login(email, password)),
       register: async (data) => accept(await api.register(data)),
       logout: () => {
+        const refreshToken = getRefreshToken()
+        // сессию на сервере закрываем в фоне: выйти локально можно и без сети
+        if (refreshToken) api.logout(refreshToken).catch(() => undefined)
         clearToken()
         setLoggedOut(true)
         setUser(null)

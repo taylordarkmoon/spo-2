@@ -1,5 +1,5 @@
 import { API_URL, PAGE_SIZE } from '../config'
-import { AUTH_EXPIRED_EVENT, clearToken, getToken } from '../lib/token'
+import { AUTH_EXPIRED_EVENT, clearToken, getRefreshToken, getToken, setTokens } from '../lib/token'
 import type {
   AdminUser,
   AdminUserPage,
@@ -49,7 +49,41 @@ function detailMessage(body: unknown, status: number): string {
   return `Ошибка сервера (${status})`
 }
 
-async function request<T>(path: string, opts: Options = {}, withAuth = true): Promise<T> {
+type RefreshResult = 'ok' | 'invalid' | 'network'
+
+/** Один общий запрос обновления: если несколько запросов одновременно получили 401,
+ *  refresh-токен отправляется только один раз, остальные ждут его результата. */
+let refreshing: Promise<RefreshResult> | null = null
+
+async function doRefresh(): Promise<RefreshResult> {
+  const refreshToken = getRefreshToken()
+  if (!refreshToken) return 'invalid'
+  let res: Response
+  try {
+    res = await fetch(`${BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    })
+  } catch {
+    return 'network'
+  }
+  if (!res.ok) return 'invalid'
+  const data = (await res.json()) as TokenOut
+  setTokens(data.access_token, data.refresh_token)
+  return 'ok'
+}
+
+function refreshTokens(): Promise<RefreshResult> {
+  if (!refreshing) {
+    refreshing = doRefresh().finally(() => {
+      refreshing = null
+    })
+  }
+  return refreshing
+}
+
+async function request<T>(path: string, opts: Options = {}, withAuth = true, retried = false): Promise<T> {
   const url = new URL(BASE + path)
   for (const [k, v] of Object.entries(opts.query ?? {})) {
     if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
@@ -78,9 +112,17 @@ async function request<T>(path: string, opts: Options = {}, withAuth = true): Pr
 
   if (!res.ok) {
     const message = detailMessage(data, res.status)
+
+    // access-токен истёк — пробуем обновить его по refresh-токену и повторить запрос
+    if (withAuth && res.status === 401 && !retried && getRefreshToken()) {
+      const result = await refreshTokens()
+      if (result === 'ok') return request<T>(path, opts, withAuth, true)
+      if (result === 'network') throw new ApiError(0, 'Не удалось связаться с сервером. Проверьте, что бэкенд запущен')
+    }
+
     const expired = res.status === 401 || (res.status === 403 && message.includes('заблокирован'))
     if (token && expired) {
-      // токен недействителен (истёк, пользователь удалён или забанен): выходим из аккаунта
+      // сессию обновить не удалось (refresh-токен истёк, пользователь удалён или забанен): выходим
       clearToken()
       window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT))
       // публичные запросы повторяем гостем, чтобы лента не ломалась
@@ -123,6 +165,9 @@ export const api = {
   register: (data: RegisterData) => request<TokenOut>('/auth/register', { method: 'POST', json: data }, false),
   login: (email: string, password: string) =>
     request<TokenOut>('/auth/login', { method: 'POST', json: { email, password } }, false),
+  /** Завершает сессию на сервере (удаляет refresh-токен). */
+  logout: (refreshToken: string) =>
+    request<void>('/auth/logout', { method: 'POST', json: { refresh_token: refreshToken } }, false),
   getMe: () => request<UserMe>('/users/me'),
   getMyWarnings: () => request<WarningItem[]>('/users/me/warnings'),
   changePassword: (oldPassword: string, newPassword: string, confirm: string) =>

@@ -34,19 +34,26 @@ def moderator_delete_post(
     db: Session = Depends(get_db),
     moderator: User = Depends(require_moderator),
 ):
-    """Удалить пост. Можно отметить галочкой «нарушает правила» (`is_violation`)
-    и оставить комментарий-пояснение. Пост удаляется полностью, журнал удалений не хранится.
-    При нарушении автору выдаётся предупреждение с этим комментарием (таблица warnings)."""
+    """Удалить пост.
+
+    - без галочки (`is_violation=false`) — пост просто удаляется, без предупреждения;
+    - с галочкой (`is_violation=true`) — обязательно `comment`: это текст предупреждения автору.
+
+    Модератор может выдать предупреждение только студенту, администратор — студенту и модератору.
+    Пост удаляется полностью, журнал удалений не хранится."""
     post = get_post_or_404(db, post_id)
     author = post.author
+    if data.is_violation and not _can_moderate(moderator, author):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "Нельзя выдать предупреждение автору этого поста. Удалите пост без отметки о нарушении",
+        )
     urls = [f.file_url for f in post.files]
     db.delete(post)
 
     result = ModerationDeleteOut(post_id=post_id, is_violation=data.is_violation, warning_issued=False)
-    if data.is_violation and author.id != moderator.id:
-        reason = f"Пост #{post_id} удалён за нарушение правил"
-        if data.comment:
-            reason += f": {data.comment}"
+    if data.is_violation:
+        reason = f"Пост #{post_id} удалён за нарушение правил: {data.comment}"
         _, count, auto_banned = issue_warning(db, author, moderator, reason[:500])
         result.warning_issued = True
         result.warnings_count = count

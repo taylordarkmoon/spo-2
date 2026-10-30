@@ -64,11 +64,21 @@ spo-shpora/
 ### Регистрация и вход
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/auth/register` | `{email, nickname, password, password_confirm}` → токен + профиль |
-| POST | `/auth/login` | `{email, password}` → токен + профиль |
+| POST | `/auth/register` | `{email, nickname, password, password_confirm}` → токены + профиль |
+| POST | `/auth/login` | `{email, password}` → токены + профиль |
 | POST | `/auth/token` | то же через форму (для Swagger) |
+| POST | `/auth/refresh` | `{refresh_token}` → новая пара токенов (старый refresh-токен перестаёт действовать) |
+| POST | `/auth/logout` | `{refresh_token}` — выйти: сессия удаляется на сервере |
 
-Токен передаётся в заголовке `Authorization: Bearer <token>`.
+Ответ входа/регистрации/обновления: `{access_token, refresh_token, token_type, expires_in, user}`.
+
+- **access-токен** живёт 15 минут (`ACCESS_TOKEN_EXPIRE_MINUTES`), передаётся в заголовке
+  `Authorization: Bearer <access_token>`;
+- **refresh-токен** живёт 30 дней (`REFRESH_TOKEN_EXPIRE_DAYS`), нужен только для `/auth/refresh`.
+  В базе (таблица `refresh_tokens`) хранится его SHA-256 хэш, а не сам токен.
+
+Когда сервер отвечает 401, фронтенд сам вызывает `/auth/refresh` и повторяет запрос.
+При бане и смене пароля все refresh-токены пользователя удаляются.
 
 ### Поиск / лента (кнопка «Поиск»)
 `GET /posts` — доступно гостям.
@@ -108,7 +118,7 @@ spo-shpora/
 | PATCH | `/users/me` | `{nickname}` |
 | POST | `/users/me/avatar` | multipart, поле `file` (jpg/png/webp/gif, до 5 МБ) |
 | DELETE | `/users/me/avatar` | удалить аватарку |
-| POST | `/users/me/password` | смена пароля |
+| POST | `/users/me/password` | смена пароля → новая пара токенов, остальные сессии завершаются |
 | GET | `/users/me/posts` | мои посты (с пагинацией) |
 | GET | `/users/me/likes` | лайкнутые посты |
 | GET | `/users/me/warnings` | мои предупреждения |
@@ -117,7 +127,7 @@ spo-shpora/
 ### Модератор
 | Метод | Путь | Описание |
 |---|---|---|
-| POST | `/moderation/posts/{id}/delete` | `{is_violation: bool, comment?}` — удалить пост; при `is_violation=true` автору выдаётся предупреждение |
+| POST | `/moderation/posts/{id}/delete` | `{is_violation: bool, comment}` — удалить пост. Без галочки — просто удаление. С галочкой `comment` обязателен — это текст предупреждения автору |
 | POST | `/moderation/users/{id}/warnings` | `{reason}` — выдать предупреждение |
 | GET | `/moderation/users/{id}/warnings` | предупреждения пользователя |
 | DELETE | `/moderation/warnings/{id}` | отозвать предупреждение |
@@ -125,6 +135,9 @@ spo-shpora/
 
 После `WARNINGS_TO_AUTO_BAN` предупреждений (по умолчанию 3) пользователь банится
 автоматически — в таблице `bans` запись с `is_auto = true`.
+
+Кто кому может выдать предупреждение: модератор — только студентам, администратор — студентам и модераторам.
+Администратора нельзя предупредить и он никогда не банится автоматически.
 
 ### Администратор
 | Метод | Путь | Описание |
