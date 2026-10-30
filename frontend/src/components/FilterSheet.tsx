@@ -33,8 +33,8 @@ export function filterOptions(dict: Dictionaries, key: FilterKey): Option[] {
       return dict.institutes.map((i) => ({ id: i.id, label: i.name }));
     case 'subject_id':
       return dict.subjects.map((i) => ({ id: i.id, label: i.name }));
-    // case 'year':
-    //   return dict.years.map((y) => ({ id: y, label: String(y) }))
+    case 'year':
+      return dict.years.map((y) => ({ id: y, label: String(y) }));
     case 'semester_id':
       return dict.semesters.map((i) => ({
         id: i.id,

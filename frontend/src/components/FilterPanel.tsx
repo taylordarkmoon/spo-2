@@ -1,7 +1,7 @@
 import { SINGLE_FILTER } from '../config';
 import type { Dictionaries, FilterKey, PostFilters } from '../types';
 import { Dropdown } from './Dropdown';
-import { FILTER_LABELS, filterOptions } from './FilterSheet';
+import { FILTER_LABELS } from './FilterSheet';
 import styles from './FilterPanel.module.css';
 
 const ORDER: FilterKey[] = [
