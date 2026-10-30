@@ -19,41 +19,44 @@ env:
 
 jobs:
   backend-tests:
-  runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-  services:
-    postgres:
-      image: postgres:16-alpine
-      env:
-        POSTGRES_DB: shpora
-        POSTGRES_USER: shpora
-        POSTGRES_PASSWORD: shpora
-      ports:
-        - 5433:5432
-      options: >-
-        --health-cmd "pg_isready -U shpora -d shpora"
-        --health-interval 5s
-        --health-timeout 5s
-        --health-retries 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: spora_test
+          POSTGRES_USER: shpora
+          POSTGRES_PASSWORD: shpora
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U shpora -d spora_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
-  steps:
-    - uses: actions/checkout@v4
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-    - name: Install dependencies
-      working-directory: ./backend
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements-dev.txt
+      - name: Install backend dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
 
-    - name: Run pytest
-      working-directory: ./backend
-      env:
-        DATABASE_URL: postgresql+psycopg://shpora:shpora@localhost:5433/shpora
-      run: pytest
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          DATABASE_URL: postgresql+psycopg://shpora:shpora@localhost:5433/spora_test
+        run: pytest -v
 
   frontend-tests:
     runs-on: ubuntu-latest
@@ -63,19 +66,20 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: shpora
+          POSTGRES_DB: spora_test
           POSTGRES_USER: shpora
           POSTGRES_PASSWORD: shpora
         ports:
           - 5433:5432
         options: >-
-          --health-cmd "pg_isready -U shpora -d shpora"
+          --health-cmd "pg_isready -U shpora -d spora_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -90,19 +94,19 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install backend dependencies
-        working-directory: ./backend
+        working-directory: backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
       - name: Install frontend dependencies
-        working-directory: ./frontend
+        working-directory: frontend
         run: npm ci
 
       - name: Start backend
-        working-directory: ./backend
+        working-directory: backend
         env:
-          DATABASE_URL: postgresql+psycopg://shpora:shpora@localhost:5433/shpora
+          DATABASE_URL: postgresql+psycopg://shpora:shpora@localhost:5433/spora_test
         run: |
           nohup python -m uvicorn app.main:app \
             --host 0.0.0.0 \
@@ -112,7 +116,7 @@ jobs:
       - name: Wait for backend
         run: |
           for i in {1..60}; do
-            if curl -fsS http://localhost:8000/api/ping > /dev/null; then
+            if curl -fsS http://localhost:8000/api/health > /dev/null; then
               echo "Backend is ready"
               exit 0
             fi
@@ -124,11 +128,11 @@ jobs:
           exit 1
 
       - name: Install Playwright browsers
-        working-directory: ./frontend
+        working-directory: frontend
         run: npx playwright install --with-deps
 
       - name: Run Playwright tests
-        working-directory: ./frontend
+        working-directory: frontend
         env:
           CI: true
           VITE_API_URL: http://localhost:8000
@@ -146,23 +150,37 @@ jobs:
 
       - name: Show backend logs on failure
         if: failure()
-        run: cat backend/backend.log
+        run: |
+          if [ -f backend/backend.log ]; then
+            cat backend/backend.log
+          fi
 
   backend:
-    needs: [backend-tests, frontend-tests]
+    if: github.event_name == 'push'
+    needs:
+      - backend-tests
+      - frontend-tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: meta
+
+      - name: Docker metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-backend
@@ -170,7 +188,9 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
             type=ref,event=tag
-      - uses: docker/build-push-action@v6
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
         with:
           context: ./backend
           push: true
@@ -180,20 +200,31 @@ jobs:
           cache-to: type=gha,mode=max
 
   frontend:
-    needs: [backend-tests, frontend-tests]
+    if: github.event_name == 'push'
+    needs:
+      - backend-tests
+      - frontend-tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/login-action@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - id: meta
+
+      - name: Docker metadata
+        id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}-frontend
@@ -201,7 +232,9 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha
             type=ref,event=tag
-      - uses: docker/build-push-action@v6
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
         with:
           context: ./frontend
           push: true
