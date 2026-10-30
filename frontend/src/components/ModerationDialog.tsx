@@ -7,6 +7,9 @@ import { Modal } from './Modal'
 import ui from './ui.module.css'
 import styles from './ModerationDialog.module.css'
 
+/** Лимит текста предупреждения при удалении поста на бэкенде (ModerationDeleteIn.comment). */
+const COMMENT_MAX_WARNING = 450
+
 interface Props {
   post: Post
   /** вызывается при закрытии окна, если пост был удалён */
@@ -29,6 +32,7 @@ export function ModerationDialog({ post, onRemoved, onClose }: Props) {
   }
 
   const remove = async () => {
+    if (violation && !comment.trim()) return setError('Напишите текст предупреждения: он будет отправлен автору')
     setBusy('delete')
     setError(null)
     try {
@@ -89,14 +93,18 @@ export function ModerationDialog({ post, onRemoved, onClose }: Props) {
           <input type="checkbox" checked={violation} onChange={(e) => setViolation(e.target.checked)} />
           <span>Нарушает правила (автор получит предупреждение)</span>
         </label>
-        <textarea
-          className={styles.textarea}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          maxLength={500}
-          placeholder="Комментарий-пояснение (необязательно)"
-          aria-label="Комментарий"
-        />
+        {violation ? (
+          <textarea
+            className={styles.textarea}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            maxLength={COMMENT_MAX_WARNING}
+            placeholder="Текст предупреждения автору (обязательно)"
+            aria-label="Текст предупреждения автору"
+          />
+        ) : (
+          <p className={styles.hint}>Без отметки пост будет просто удалён, автор не получит предупреждения.</p>
+        )}
         <button type="button" className={`${ui.btn} ${ui.danger} ${ui.small}`} onClick={remove} disabled={busy !== null}>
           {busy === 'delete' ? 'Удаляем…' : 'Удалить пост'}
         </button>

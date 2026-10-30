@@ -170,8 +170,9 @@ export const api = {
     request<void>('/auth/logout', { method: 'POST', json: { refresh_token: refreshToken } }, false),
   getMe: () => request<UserMe>('/users/me'),
   getMyWarnings: () => request<WarningItem[]>('/users/me/warnings'),
+  /** Бэкенд завершает все сессии и выдаёт текущему устройству новую пару токенов. */
   changePassword: (oldPassword: string, newPassword: string, confirm: string) =>
-    request<void>('/users/me/password', {
+    request<TokenOut>('/users/me/password', {
       method: 'POST',
       json: { old_password: oldPassword, new_password: newPassword, new_password_confirm: confirm },
     }),

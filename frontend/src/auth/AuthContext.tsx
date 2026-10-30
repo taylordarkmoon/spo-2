@@ -15,6 +15,8 @@ interface AuthValue {
   setUser(user: UserMe): void
   /** куда отправлять гостя со страницы, закрытой для неавторизованных: на ленту после выхода, иначе на вход */
   guestPath: string
+  /** Применить новую сессию, выданную сервером (например, после смены пароля). */
+  acceptSession(res: TokenOut): void
 }
 
 const AuthContext = createContext<AuthValue | null>(null)
@@ -61,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       setUser,
       guestPath: loggedOut ? '/' : '/login',
+      acceptSession: accept,
     }),
     [user, loading, loggedOut, accept],
   )

@@ -11,7 +11,7 @@ import styles from './FormPage.module.css'
 
 /** Смена пароля: текущий пароль, новый и подтверждение (правила как при регистрации: 6–72 символа). */
 export function ChangePasswordPage() {
-  const { user, loading, guestPath } = useAuth()
+  const { user, loading, guestPath, acceptSession } = useAuth()
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -43,7 +43,8 @@ export function ChangePasswordPage() {
     if (Object.values(errors).some(Boolean)) return
     setBusy(true)
     try {
-      await api.changePassword(oldPassword, newPassword, confirm)
+      // старые сессии на сервере отозваны: сохраняем новую пару токенов, иначе через 15 минут нас разлогинит
+      acceptSession(await api.changePassword(oldPassword, newPassword, confirm))
       setOldPassword('')
       setNewPassword('')
       setConfirm('')
@@ -92,7 +93,7 @@ export function ChangePasswordPage() {
         />
 
         {error && <p className={ui.error}>{error}</p>}
-        {done && <p className={ui.success}>Пароль изменён. Используйте его при следующем входе.</p>}
+        {done && <p className={ui.success}>Пароль изменён. Вы остались в аккаунте на этом устройстве, на остальных потребуется войти заново.</p>}
 
         <button type="submit" className={`${ui.btn} ${ui.block}`} disabled={busy}>
           {busy ? 'Сохраняем…' : 'Сменить пароль'}
