@@ -84,7 +84,7 @@ function refreshTokens(): Promise<RefreshResult> {
 }
 
 async function request<T>(path: string, opts: Options = {}, withAuth = true, retried = false): Promise<T> {
-  const url = new URL(BASE + path)
+  const url = new URL(BASE + path, window.location.origin)
   for (const [k, v] of Object.entries(opts.query ?? {})) {
     if (v !== undefined && v !== '') url.searchParams.set(k, String(v))
   }
